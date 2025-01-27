@@ -6,7 +6,8 @@
 #define DIM 5
 #define UNUSED(t) (void)(t)
 #define N_params 13
-#define MAX_ITER (int) pow(10, 6)
+#define MAX_ITER (int) pow(10, 7)
+#define MAX_LEN_FILE 100
 
 double c[6] = {0.0, 0.2, 0.3, 0.6, 1.0, 70.875};
 double a[6][5] = {{0.0, 0.0, 0.0, 0.0, 0.0}, {0.2, 0.0, 0.0, 0.0, 0.0},
@@ -19,8 +20,8 @@ double b_ast[6] = {2825.0/27648.0, 0.0, 18575.0/48384.0, 13525.0/55296.0, 277.0/
 double a1 = 1.0, a2 = 25.0;
 double b1 = 0.6, b2 = 2.3;
 double c1 = 0.646, c2 = 0.6, c34 = 0.2;
-double m1 = 0.23;
-double Q = 5.2e-3, q1 = 0.08, w1 = 0.24, w2 = 0.02, q54 = 0.6;
+double m1 = 2.3;
+double Q = 5.2e-2, q1 = 0.8, w1 = 2.4, w2 = 0.02, q54 = 0.6;
 
 double yscale(double y[DIM], double field[DIM], double h){
     double ymax, fieldmax;
@@ -69,7 +70,7 @@ void rungekutta(void (*system)(double x0[DIM], double x1[DIM], double t, double 
     //N = (int) ((tfin - tn) / h);
     fprintf(fp, "#t\tx1\tx2\tx3\tx4\tx5\terr\th\tyscale\n"
                 "%.6e\t%.6e\t%.6e\t%.6e\t%.6e\t%.6e\t%.10e\t%.10e\t%.10e\n", 
-                tn, yn[0], yn[1], yn[2], yn[3], yn[4], maxerr, h, 0);
+                tn, yn[0], yn[1], yn[2], yn[3], yn[4], maxerr, h, 0.0);
 
     //fprintf(fp, "#t\tx1\tx2\tabserr\th\tyscale\n"
     //            "%.10e\t%.10e\t%.10e\t%.10e\t%.10e\t%.10e\n", 
@@ -163,14 +164,26 @@ void rungekutta(void (*system)(double x0[DIM], double x1[DIM], double t, double 
 int main(void){
     double yin[DIM], tin, tfin, h, rel_acc;
     double params[N_params];
-    char filename[20];
+    char filename[100];
     
     
-    //params[0] = a1; params[1] = a2;
-    //params[2] = b1; params[3] = b2;
-    //params[4] = c1; params[5] = c2; params[6] = c34;
-    //params[7] = m1;
-    //params[8] = Q; params[9] = q1; params[10] = w1; params[11] = w2; params[12] = q54;
+    params[0] = a1; params[1] = a2;
+    params[2] = b1; params[3] = b2;
+    params[4] = c1; params[5] = c2; params[6] = c34;
+    params[7] = m1;
+    params[8] = Q; params[9] = q1; params[10] = w1; params[11] = w2; params[12] = q54;
+
+    tin = 0.0;
+    tfin = 100.0;
+    h = 1.0e-3;
+    rel_acc = 1e-20;
+    for (int idim = 0; idim < DIM; idim++)
+    {
+        yin[idim] = 1.0e-4;
+    }
+    strcpy(filename, "./../data/cancer.dat");
+    
+    rungekutta(&cancer_system, params, yin, tin, tfin, h, rel_acc, filename);
     //params[0] = -1.0;
     //for (int i = 0; i < 10; i++)
     //{   
