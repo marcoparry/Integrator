@@ -2,12 +2,14 @@
 #include<stdlib.h>
 #include<string.h>
 #include<math.h>
+#
 
 #define DIM 5
 #define UNUSED(t) (void)(t)
 #define N_params 13
 #define MAX_ITER (int) pow(10, 7)
 #define MAX_LEN_FILE 100
+#define N_simul 1000
 
 double c[6] = {0.0, 0.2, 0.3, 0.6, 1.0, 70.875};
 double a[6][5] = {{0.0, 0.0, 0.0, 0.0, 0.0}, {0.2, 0.0, 0.0, 0.0, 0.0},
@@ -68,6 +70,12 @@ void rungekutta(void (*system)(double x0[DIM], double x1[DIM], double t, double 
 
     fp = fopen(filename, "w");
     //N = (int) ((tfin - tn) / h);
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Error in opening the file %s (%s, %d)\n", filename, __FILE__, __LINE__);
+        exit(EXIT_FAILURE);
+    }
+    
     fprintf(fp, "#t\tx1\tx2\tx3\tx4\tx5\terr\th\tyscale\n"
                 "%.6e\t%.6e\t%.6e\t%.6e\t%.6e\t%.6e\t%.10e\t%.10e\t%.10e\n", 
                 tn, yn[0], yn[1], yn[2], yn[3], yn[4], maxerr, h, 0.0);
@@ -163,27 +171,51 @@ void rungekutta(void (*system)(double x0[DIM], double x1[DIM], double t, double 
 
 int main(void){
     double yin[DIM], tin, tfin, h, rel_acc;
-    double params[N_params];
-    char filename[100];
-    
-    
-    params[0] = a1; params[1] = a2;
-    params[2] = b1; params[3] = b2;
-    params[4] = c1; params[5] = c2; params[6] = c34;
-    params[7] = m1;
-    params[8] = Q; params[9] = q1; params[10] = w1; params[11] = w2; params[12] = q54;
+    double params[N_params + 1];
+    char filename_data[200], filename_params[200];
+    int count = 0, index;
+    FILE *fp;
 
     tin = 0.0;
     tfin = 100.0;
     h = 1.0e-3;
     rel_acc = 1e-20;
-    for (int idim = 0; idim < DIM; idim++)
+   
+    strcpy(filename_params, "./../data/parameters.dat");
+    fp = fopen(filename_params, "r");
+
+    if (fp == NULL)
     {
-        yin[idim] = 1.0e-4;
+        fprintf(stderr, "Error in opening the file %s (%s, %d)\n", filename_params, __FILE__, __LINE__);
+        exit(EXIT_FAILURE);
     }
-    strcpy(filename, "./../data/cancer.dat");
     
-    rungekutta(&cancer_system, params, yin, tin, tfin, h, rel_acc, filename);
+    //params[0] = a1; params[1] = a2;
+    //params[2] = b1; params[3] = b2;
+    //params[4] = c1; params[5] = c2; params[6] = c34;
+    //params[7] = m1;
+    //params[8] = Q; params[9] = q1; params[10] = w1; params[11] = w2; params[12] = q54;
+
+    //fprintf(fp, "#a1\ta2\tb1\tb2\tc1\tc2\tc34\tm1\tQ\tq1\tw1\tw2\tq54"
+    //            "%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e\t%.4e",
+    //            a1, a2, b1, b2, c1, c2, c34, m1, Q, q1, w1, w2, q54);
+    while (fscanf(fp, "%d\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf",
+                &index,
+                &params[0], &params[1], &params[2], &params[3], &params[4], &params[5], &params[6], 
+                &params[7], &params[8], &params[9], &params[10], &params[11], &params[12]) !=EOF && ++count < N_simul)
+    {
+        for (int idim = 0; idim < DIM; idim++)
+        {
+            yin[idim] = 1.0e-4;
+        }    
+        snprintf(filename_data, sizeof(filename_data), "./../data/cancer_%d.dat", index);
+        rungekutta(&cancer_system, params, yin, tin, tfin, h, rel_acc, filename_data);
+    }
+
+    fclose(fp);
+
+    
+    
     //params[0] = -1.0;
     //for (int i = 0; i < 10; i++)
     //{   
