@@ -72,7 +72,7 @@ int main(void){
     if (fp == NULL)
     {
         fprintf(stderr, "Error in opening the file %s (%s, %d)\n", "./../data/roots.dat", __FILE__, __LINE__);
-        return EXIT_FAILURE;
+        exit(EXIT_FAILURE);
     }
     
     fprintf(fp, "#root_real\troot_imag\titerations\taccuracy\n");
@@ -81,6 +81,7 @@ int main(void){
     {
         root_list[j] = 1.0;
     }
+    
     initial_deg = deg;
     for (int j = 0; j < initial_deg; j++)
     {   
