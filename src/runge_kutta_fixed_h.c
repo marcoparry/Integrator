@@ -41,7 +41,7 @@ double yscale(double y[DIM], double field[DIM], double h){
         }
         
     }
-    return ymin + h * fieldmin + 1e-9;
+    return ymin + h * fieldmin;
 }
 
 void func2d(double x[DIM], double field[DIM], double t, double params[N_params]){
@@ -63,6 +63,7 @@ void cancer_system(double x[DIM], double field[DIM], double t, double params[N_p
 
 void rungekutta(void (*system)(double xin[DIM], double xout[DIM], double t, double params[N_params]), double params[N_params],
                 double yn[DIM], double tn, double tfin, double h, double rel_acc, char filename[20]){
+    UNUSED(rel_acc);
     int iter;
     double err[DIM], temp[DIM], field[DIM], maxerr=0.0, yscale_loc;
     double k[6][DIM];
@@ -76,9 +77,11 @@ void rungekutta(void (*system)(double xin[DIM], double xout[DIM], double t, doub
         exit(EXIT_FAILURE);
     }
     
-    fprintf(fp, "t\tx1\tx2\tx3\tx4\tx5\terr\th\tyscale\n"
-                "%.20e\t%.20e\t%.20e\t%.20e\t%.20e\t%.20e\t%.20e\t%.20e\t%.20e\n", 
-                tn, yn[0], yn[1], yn[2], yn[3], yn[4], maxerr, h, 0.0);
+    fprintf(fp, "t\tx1\tx2\tx3\tx4\tx5\terr\th\tyscale\t"
+                "err1\terr2\terr3\terr4\terr5\n"
+                "%.6e\t%.6e\t%.6e\t%.6e\t%.6e\t%.6e\t%.10e\t%.10e\t%.10e\t"
+                "%.10e\t%.10e\t%.10e\t%.10e\t%.10e\n", 
+                tn, yn[0], yn[1], yn[2], yn[3], yn[4], maxerr, h, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 
     //fprintf(fp, "#t\tx1\tx2\tabserr\th\tyscale\n"
     //            "%.10e\t%.10e\t%.10e\t%.10e\t%.10e\t%.10e\n", 
@@ -144,24 +147,13 @@ void rungekutta(void (*system)(double xin[DIM], double xout[DIM], double t, doub
 
         system(yn, field, tn, params);
         yscale_loc = yscale(yn, field, h);
-        if (maxerr <= rel_acc * yscale_loc)
-        {   
-            tn += h;
-            for (int jdim = 0; jdim < DIM; jdim++)
-            {
-                yn[jdim] = temp[jdim];
-            }
-            h = 0.9 * h * pow(rel_acc * yscale_loc / maxerr, 0.2);
-            //fprintf(fp, "%.10e\t%.10e\t%.10e\t%.10e\t%.10e\t%.10e\n", tn, yn[0], yn[1], maxerr, h, yscale_loc);
-            fprintf(fp, "%.20e\t%.20e\t%.20e\t%.20e\t%.20e\t%.20e\t%.20e\t%.20e\t%.20e\n", 
-                        tn, yn[0], yn[1], yn[2], yn[3], yn[4], maxerr, h, yscale_loc);
-
-        }
-        
-        else
+        tn += h;
+        for (int jdim = 0; jdim < DIM; jdim++)
         {
-            h = 0.9 * h * pow(rel_acc * yscale_loc / maxerr, 0.25);
+            yn[jdim] = temp[jdim];
         }
+        fprintf(fp, "%.6e\t%.6e\t%.6e\t%.6e\t%.6e\t%.6e\t%.10e\t%.10e\t%.10e\t%.10e\t%.10e\t%.10e\t%.10e\t%.10e\n", 
+                    tn, yn[0], yn[1], yn[2], yn[3], yn[4], maxerr, h, yscale_loc, err[0], err[1], err[2], err[3], err[4]);
         iter++;
     }
     fclose(fp);
@@ -175,11 +167,11 @@ int main(void){
     FILE *fp;
 
     tin = 0.0;
-    tfin = 1000.0;
-    h = 1.0e-3;
-    rel_acc = 1e-9;
+    tfin = 10.0;
+    h = 1.0e-6;
+    rel_acc = 1e-12;
    
-    strcpy(filename_params, "./../data/parameters_different_q1.dat");
+    strcpy(filename_params, "./../data/parameters.dat");
     fp = fopen(filename_params, "r");
 
     if (fp == NULL)
@@ -201,7 +193,10 @@ int main(void){
                 &index,
                 &params[0], &params[1], &params[2], &params[3], &params[4], &params[5], &params[6], 
                 &params[7], &params[8], &params[9], &params[10], &params[11], &params[12]) !=EOF && ++count < N_simul)
-    {       
+    {
+        if (index == 12)
+        {
+                   
         printf("%d\n", count);
         /* let us set, as initial conditions, the asymptotic tumor-free behavior, and a small initial value for tumor cells */
         yin[0] = params[0] / params[1];
@@ -209,14 +204,10 @@ int main(void){
         yin[2] = params[5] / params[4] * yin[1];
         yin[3] = 1.0e-6;
         yin[4] = params[8] / params[9];
-        //yin[0] = 1.0e-6;
-        //yin[1] = 1.0e-6;
-        //yin[2] = 1.0e-6;
-        //yin[3] = 1.0e-6;
-        //yin[4] = 1.0e-6;
 
-        snprintf(filename_data, sizeof(filename_data), "./../data/cancer_different_q1_%d.dat", index);
-        rungekutta(&cancer_system, params, yin, tin, tfin, h, rel_acc, filename_data);
+        snprintf(filename_data, sizeof(filename_data), "./../data/cancer_%d_test.dat", index);
+        rungekutta(&cancer_system, params, yin, tin, tfin, h, rel_acc, filename_data);       
+        }        
     }
 
     fclose(fp);
